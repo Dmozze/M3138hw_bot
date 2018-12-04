@@ -54,28 +54,29 @@ def checkIn(bot, update, args):
 def edit(bot, update, args):
     id = str(update.message.chat_id)
     with shelve.open('names', flag='r') as shelve_names:
-        if (id in shelve_names):
-            update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
-            return
+        if id in shelve_names:
             with shelve.open('tasks') as shelve_tasks:
-                dp[id] = args
+                shelve_tasks[id] = args
         else:
-            print('Вы не зарегистрированы, /help')
+            update.message.reply_text('Вы не зарегистрированы, /help')
     return
 
 def show(bot,update):
     id = str(update.message.chat_id)
     with shelve.open('names', flag='r') as shelve_names:
-        if (id in shelve_names):
-            update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
-            return
+        if id in shelve_names:
             with shelve.open('tasks') as shelve_tasks:
                 if id in shelve_tasks:
-                    print(db[id])
+                    answer = ' '.join(shelve_tasks[id])
+                    print(answer)
+                    if len(answer) == 0:
+                        update.message.reply_text('Вы заявили 0 задач(')
+                    else:
+                        update.message.reply_text(answer)
                 else:
-                    print('Вы не заявили не одну задачу(')
+                    update.message.reply_text('Вы заявили 0 задач(')
         else:
-            print('Вы не зарегистрированы, /help')
+            update.message.reply_text('Вы не зарегистрированы, /help')
     return
 
 
