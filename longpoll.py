@@ -32,43 +32,48 @@ def help(bot, update):
 
 
 def checkIn(bot, update, args):
+    name = str(args[0])
     if (len(args) != 1):
         update.message.reply_text('Неверное количество аргументов, введите только фамилию с заглавной буквы')
         return
     isnamegood = False
+    print(len(lastnames))
     for i in range(len(lastnames)):
-        if (args == lastnames[i][0:len(args) - 1]):
-            bd = shelve.open('names.txt')
-            bd[update.message.from_user_id] = {'id' : i, 'name' : lastname[i]}
+        print (lastnames[i][0:len(name)])
+        if (name == lastnames[i][0:len(name)]):
+            bd = shelve.open('names')
+            bd[str(update.message.chat_id)] = i
             lastnames[i] = ''
             isnamegood = True
             break
     if isnamegood:
         update.message.reply_text('Вы были удачно зарегистрированны')
     else:
-        update.messgae.reply_text('Я не смог вас индефицировать, как студента M3138')
+        update.message.reply_text('Я не смог вас индефицировать, как студента M3138')
 
 def edit(bot, update, args):
-    bd = shelve.open('names.txt', flag='r')
-    if (bd.has_key(update.message.from_user_id) == False):
+    bd = shelve.open('names', flag='r')
+    id = str(update.message.chat_id)
+    if (bd.has_key(id) == False):
         update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
         return
-    user = bd[update.message.from_user_id]
     bd.close()
     bd = shelve.open('tasks')
-    bd[update.message.from_user_id] = args
+    bd[id] = args
     bd.close()
     return
 
 def show(bot,update):
-    bd = shelve.open('names.txt', flag='r')
-    if (bd.has_key(update.message.from_user_id) == False):
+    bd = shelve.open('names', flag='r')
+    id = str(update.message.chat_id)
+    if (id in bd):
+        used = bd[id]
         update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
         return
-    user = bd[update.message.from_user_id]
+    user = bd[id]
     bd.close()
     bd = shelve.open('tasks')
-    print(bd[update.message.from_user_id])
+    print(bd[id])
     bd.close()
     return
 
@@ -83,13 +88,13 @@ if __name__ == '__main__':
 
     dp.add_handler(CommandHandler('start', start))
     dp.add_handler(CommandHandler('help', help))
-    dp.add_handler(CommandHandler('reg', checkIn))
-    dp.add_handler(CommandHandler('edit', edit))
+    dp.add_handler(CommandHandler('reg', checkIn, pass_args=True))
+    dp.add_handler(CommandHandler('edit', edit, pass_args=True))
     dp.add_handler(CommandHandler('show', show))
 
-    dp.add_handler(CommandHandler('l', list))
-    dp.add_handler(CommandHandler('r', random))
-    dp.add_handler(CommandHandler('n', choose));
+#    dp.add_handler(CommandHandler('l', list))
+#    dp.add_handler(CommandHandler('r', random))
+#    dp.add_handler(CommandHandler('n', choose));
 
     dp.add_error_handler(error)
 
