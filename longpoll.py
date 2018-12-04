@@ -41,8 +41,8 @@ def checkIn(bot, update, args):
     for i in range(len(lastnames)):
         print (lastnames[i][0:len(name)])
         if (name == lastnames[i][0:len(name)]):
-            bd = shelve.open('names')
-            bd[str(update.message.chat_id)] = i
+            db = shelve.open('names')
+            db[str(update.message.chat_id)] = i
             lastnames[i] = ''
             isnamegood = True
             break
@@ -52,29 +52,30 @@ def checkIn(bot, update, args):
         update.message.reply_text('Я не смог вас индефицировать, как студента M3138')
 
 def edit(bot, update, args):
-    bd = shelve.open('names', flag='r')
     id = str(update.message.chat_id)
-    if (bd.has_key(id) == False):
-        update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
-        return
-    bd.close()
-    bd = shelve.open('tasks')
-    bd[id] = args
-    bd.close()
+    with shelve.open('names', flag='r') as shelve_names:
+        if (id in shelve_names):
+            update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
+            return
+            with shelve.open('tasks') as shelve_tasks:
+                dp[id] = args
+        else:
+            print('Вы не зарегистрированы, /help')
     return
 
 def show(bot,update):
-    bd = shelve.open('names', flag='r')
     id = str(update.message.chat_id)
-    if (id in bd):
-        used = bd[id]
-        update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
-        return
-    user = bd[id]
-    bd.close()
-    bd = shelve.open('tasks')
-    print(bd[id])
-    bd.close()
+    with shelve.open('names', flag='r') as shelve_names:
+        if (id in shelve_names):
+            update.message.reply_text('Вы не зарегистрированы, зарегистрироваться - /reg')
+            return
+            with shelve.open('tasks') as shelve_tasks:
+                if id in shelve_tasks:
+                    print(db[id])
+                else:
+                    print('Вы не заявили не одну задачу(')
+        else:
+            print('Вы не зарегистрированы, /help')
     return
 
 
