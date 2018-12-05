@@ -15,8 +15,13 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+def checkUserName(username):
+    if username == TEACHER_USERNAME:
+        return True
+    else:
+        return False
 def start(bot, update):
-    if (update.message.from_user.username == TEACHER_USERNAME):
+    if checkUserName(update.message.from_user.username):
         update.message.reply_text(
             'Здравствуйте, я бот, который поможет вам вызвать к доске нуждающихся (или нет)\n'
             'Перед использованием советую ознакомиться с основами /help'
@@ -29,7 +34,7 @@ def start(bot, update):
 
 
 def help(bot, update):
-    if (update.message.from_user.username == TEACHER_USERNAME):
+    if checkUserName(update.message.from_user.username):
         update.message.reply_text(
         '/build - сгенерирует новое распределение'
         '/all выведет полное распределение'
@@ -40,7 +45,7 @@ def help(bot, update):
         update.message.reply_text(
             '/reg `Lastname` зарегистрироваться под фамилией `Lastname`(Lastname --- Ваша фамилия с заглавной буквы)\n'
             'Обратите внимание, что регистрация обязательна для пользования ботом\n'
-            '/edit принимает ваши задачи через пробел, если задачи не было он ее добавит, иначе исключит из списка задач на следующую практику\n'
+            '/edit принимает ваши задачи через пробел, если задачи не было, он ее добавит, иначе исключит из списка задач на следующую практику\n'
             '/show показывает, какие задачи заявлены на следующую практику\n'
             'При возникновении проблем писать `@Dmozze`',
             parse_mode='Markdown'
@@ -58,6 +63,9 @@ def checkIn(bot, update, args):
         print (lastnames[i][0:len(name)])
         if (name == lastnames[i][0:len(name)]):
             db = shelve.open('names')
+            if str(update.message.chat_id) in db:
+                update.message.reply_text('Вы уже зарегистрированы как ', lastnames[i])
+                return
             db[str(update.message.chat_id)] = i
             lastnames[i] = ''
             isnamegood = True
@@ -65,14 +73,25 @@ def checkIn(bot, update, args):
     if isnamegood:
         update.message.reply_text('Вы были удачно зарегистрированны')
     else:
-        update.message.reply_text('Я не смог вас индефицировать, как студента M3138')
+        update.message.reply_text('Я не смог вас индефицировать как студента M3138')
 
 def edit(bot, update, args):
+    in_values = []
+    for i in args:
+        if i.isdigit() and int(i) > 0 and int(i) < 200:
+            in_values.append(int(i))
     id = str(update.message.chat_id)
     with shelve.open('names', flag='r') as shelve_names:
         if id in shelve_names:
             with shelve.open('tasks') as shelve_tasks:
-                shelve_tasks[id] = args
+                if id in shelve_tasks:
+                    for j in shelve_tasks[id]:
+                        if j in args:
+                            args.remove(j)
+                            id.remove(j)
+                    shelve_tasks[id] = list(set(shelve_tasks[id] + args))
+                else:
+                    shelve_tasks[id] = list(set(args))
         else:
             update.message.reply_text('Вы не зарегистрированы, /help')
     return
@@ -95,6 +114,46 @@ def show(bot,update):
             update.message.reply_text('Вы не зарегистрированы, /help')
     return
 
+def build():
+    if not checkUserName(update.message.from_user.username):
+        update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
+        return
+    people = []
+    with open shelve.open('names') as shelve_names:
+        for i in range shelve_names.get_keys():
+            id = shelve_names[i]
+            people.append({'chat_id': i, 'id':id, 'name': lastnames[id].split()[0] + ' ' + lastnames[id].split()[1][1] + '. ' + lastnames[id].split()[2][1] + '.'})
+    alltasks = []
+    with open shelve.open('tasks') as shelve_tasks:
+        for i in people
+            i.update({'tasks' : shelve_tasks[i.chat_id]})
+            alltasks.append(i.tasks)
+    alltasks = list(set(alltasks))
+
+    ## TODO: сделать генерацию таблицы, и генерацию весов
+    dealing = assignment_hungary(matrix_with_weights)
+    with shelve.open('dealing') as shelve_deal:
+        shelve_deal.clear()
+        for i in dealing:
+            ##FIXME : Непонятно, как массив на выходе и непонятно, что делать если неопеределенность
+            if i < INF:
+                shelve_deal[str(task[i])] = people[dealing[i]]
+
+def all():
+    if not checkUserName(update.message.from_user.username):
+        update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
+        return
+
+
+def choose():
+    if not checkUserName(update.message.from_user.username):
+        update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
+        return
+
+def lose():
+    if not checkUserName(update.message.from_user.username):
+        update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
+        return
 
 def error(bot, update, info):
     logger.warning('Update "%s" caused error "%s"', update, info)
