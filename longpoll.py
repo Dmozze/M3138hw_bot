@@ -16,7 +16,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 def checkUserName(username):
-    if username == TEACHER_USERNAME:
+    if username.lower() == TEACHER_USERNAME:
         return True
     else:
         return False
@@ -36,10 +36,11 @@ def start(bot, update):
 def help(bot, update):
     if checkUserName(update.message.from_user.username):
         update.message.reply_text(
-        '/build - сгенерирует новое распределение'
-        '/all выведет полное распределение'
-        '/choose `number` - Вызвать человека на задачу `number`'
-        '/lose `number` - Использовать, если человек проиграл на задаче `number`. Распределение перестроится автоматически'
+        '/build - сгенерирует новое распределени\n'
+        '/all выведет полное распределение\n'
+        '/choose `number` - Вызвать человека на задачу `number`\n'
+        '/lose `number` - Использовать, если человек проиграл на задаче `number`. Распределение перестроится автоматически',
+        parse_mode='Markdown'
         )
     else:
         update.message.reply_text(
@@ -64,7 +65,7 @@ def checkIn(bot, update, args):
         if (name == lastnames[i][0:len(name)]):
             db = shelve.open('names')
             if str(update.message.chat_id) in db:
-                update.message.reply_text('Вы уже зарегистрированы как ', lastnames[i])
+                update.message.reply_text('Вы уже зарегистрированы как ' + lastnames[i])
                 return
             db[str(update.message.chat_id)] = i
             lastnames[i] = ''
@@ -85,13 +86,15 @@ def edit(bot, update, args):
         if id in shelve_names:
             with shelve.open('tasks') as shelve_tasks:
                 if id in shelve_tasks:
+                    temp = shelve_tasks[id]
                     for j in shelve_tasks[id]:
-                        if j in args:
-                            args.remove(j)
-                            id.remove(j)
-                    shelve_tasks[id] = list(set(shelve_tasks[id] + args))
+                        if j in in_values:
+                            in_values.remove(j)
+                            temp.remove(j)
+                    print(temp, in_values)
+                    shelve_tasks[id] = list(set(temp + in_values))
                 else:
-                    shelve_tasks[id] = list(set(args))
+                    shelve_tasks[id] = list(set(in_values))
         else:
             update.message.reply_text('Вы не зарегистрированы, /help')
     return
@@ -102,7 +105,7 @@ def show(bot,update):
         if id in shelve_names:
             with shelve.open('tasks') as shelve_tasks:
                 if id in shelve_tasks:
-                    answer = ' '.join(shelve_tasks[id])
+                    answer = ' '.join([str(i) for i in shelve_tasks[id]])
                     print(answer)
                     if len(answer) == 0:
                         update.message.reply_text('Вы заявили 0 задач(')
@@ -130,13 +133,13 @@ def build():
             alltasks.append(i.tasks)
     alltasks = list(set(alltasks))
 
-    ## TODO: сделать генерацию таблицы, и генерацию весов
-    dealing = assignment_hungary(matrix_with_weights)
+    weight = [[0] * alltasks for i in range(len(people))]
+    ## TODO: Сделать нормальные веса.
+    dealing = assignment_hungary(weight)
     with shelve.open('dealing') as shelve_deal:
         shelve_deal.clear()
-        for i in dealing:
-            ##FIXME : Непонятно, как массив на выходе и непонятно, что делать если неопеределенность
-            if i < INF:
+        for i in range(len(dealing)):
+            if dealing[i] > 0:
                 shelve_deal[str(task[i])] = people[dealing[i]]
 
 def all():
