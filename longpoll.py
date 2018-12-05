@@ -7,6 +7,8 @@ import logging
 import shelve
 
 from config import *
+from build import *
+from pull import *
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -14,21 +16,35 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 def start(bot, update):
-    update.message.reply_text(
-        'Привет! Я бот, который поможет тебе, как можно быстрее выйти к доске (или нет)\n'
-        'Перед использованием советую ознакомится с основами /help'
-    )
+    if (update.message.from_user.username == TEACHER_USERNAME):
+        update.message.reply_text(
+            'Здравствуйте, я бот, который поможет вам вызвать к доске нуждающихся (или нет)\n'
+            'Перед использованием советую ознакомиться с основами /help'
+        )
+    else:
+        update.message.reply_text(
+            'Привет! Я бот, который поможет тебе, как можно быстрее выйти к доске (или нет)\n'
+            'Перед использованием советую ознакомится с основами /help'
+        )
 
 
 def help(bot, update):
-    update.message.reply_text(
-        'Чтобы начать пользоваться ботом нужно зарегистрироваться /reg\n'
-        '/reg принимает вашу фамилию с большой буквы\n'
-        'После регистрации нужно внести свою задачу в бот /edit\n'
-        '/edit принимает ваши задачи через пробел, если задачи не было он ее добавит, иначе исключит из списка задач на следующую практик\n'
-        '/show показывает, какие задачи заявлены на следующую практику\n'
-        'При возникновении проблем писать @Dmozze'
-    )
+    if (update.message.from_user.username == TEACHER_USERNAME):
+        update.message.reply_text(
+        '/build - сгенерирует новое распределение'
+        '/all выведет полное распределение'
+        '/choose `number` - Вызвать человека на задачу `number`'
+        '/lose `number` - Использовать, если человек проиграл на задаче `number`. Распределение перестроится автоматически'
+        )
+    else:
+        update.message.reply_text(
+            '/reg `Lastname` зарегистрироваться под фамилией `Lastname`(Lastname --- Ваша фамилия с заглавной буквы)\n'
+            'Обратите внимание, что регистрация обязательна для пользования ботом\n'
+            '/edit принимает ваши задачи через пробел, если задачи не было он ее добавит, иначе исключит из списка задач на следующую практику\n'
+            '/show показывает, какие задачи заявлены на следующую практику\n'
+            'При возникновении проблем писать `@Dmozze`',
+            parse_mode='Markdown'
+        )
 
 
 def checkIn(bot, update, args):
@@ -94,9 +110,10 @@ if __name__ == '__main__':
     dp.add_handler(CommandHandler('edit', edit, pass_args=True))
     dp.add_handler(CommandHandler('show', show))
 
-#    dp.add_handler(CommandHandler('l', list))
-#    dp.add_handler(CommandHandler('r', random))
-#    dp.add_handler(CommandHandler('n', choose));
+    dp.add_handler(CommandHandler('build', build))
+    dp.add_handler(CommandHandler('all', all))
+    dp.add_handler(CommandHandler('choose', choose, pass_args=True))
+    dp.add_handler(CommandHandler('lose', lose, pass_args=True))
 
     dp.add_error_handler(error)
 
