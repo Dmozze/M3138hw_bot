@@ -9,19 +9,30 @@ import shelve
 from config import *
 from build import *
 from pull import *
+import random
+
+LASTTASK = 132
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO
-                    filename=HOME + 'bot.log'
+                    level=logging.INFO,
+                    #filename=HOME + 'bot.log'
                     )
 
 logger = logging.getLogger(__name__)
 
 def checkUserName(username):
-    if username.lower() == TEACHER_USERNAME or username.lower() == ADMIN_ID:
+    if username.lower() == TEACHER_USERNAME or username.lower() == ADMIN_USERNAME:
         return True
     else:
         return False
+
+def debug(bot, update):
+    if not checkUserName(update.message.from_user.username):
+        update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
+        return
+    with shelve.open('losers') as shelve_losers:
+        shelve_losers.clear()
+
 def start(bot, update):
     if checkUserName(update.message.from_user.username):
         update.message.reply_text(
@@ -61,9 +72,7 @@ def checkIn(bot, update, args):
         update.message.reply_text('Неверное количество аргументов, введите только фамилию с заглавной буквы')
         return
     isnamegood = False
-    print(len(lastnames))
     for i in range(len(lastnames)):
-        print (lastnames[i][0:len(name)])
         if (name == lastnames[i][0:len(name)]):
             db = shelve.open('names')
             if str(update.message.chat_id) in db:
@@ -93,7 +102,6 @@ def edit(bot, update, args):
                         if j in in_values:
                             in_values.remove(j)
                             temp.remove(j)
-                    print(temp, in_values)
                     shelve_tasks[id] = list(set(temp + in_values))
                 else:
                     shelve_tasks[id] = list(set(in_values))
@@ -107,8 +115,9 @@ def show(bot,update):
         if id in shelve_names:
             with shelve.open('tasks') as shelve_tasks:
                 if id in shelve_tasks:
-                    answer = ' '.join([str(i) for i in shelve_tasks[id]])
-                    print(answer)
+                    temp = [str(i) for i in shelve_tasks[id]]
+                    temp.sort()
+                    answer = ' '.join(str(i) for i in temp)
                     if len(answer) == 0:
                         update.message.reply_text('Вы заявили 0 задач(')
                     else:
@@ -125,58 +134,73 @@ def build(bot,update):
         return
     people = []
     with shelve.open('names') as shelve_names:
-        for i in shelve_names.get_keys():
+        for i in shelve_names.keys():
             id = shelve_names[i]
-            people.append({'chat_id': i, 'id':id, 'name': lastnames[id].split()[0] + ' ' + lastnames[id].split()[1][1] + '. ' + lastnames[id].split()[2][1] + '.'})
-    with shelve.open('losers') as shelve_losers:
-        for i in people:
-            if str(i.id) in losers:
-                i.update({'lose' : True})
+            people.append({'chat_id': str(i), 'id': id, 'name': str(lastnames[id].split()[0] + ' ' + lastnames[id].split()[1][0] + '. ' + lastnames[id].split()[2][0] + '.')})
     alltasks = []
-    with open shelve.open('tasks') as shelve_tasks:
-        for i in people
-            i.update({'tasks' : shelve_tasks[i.chat_id]})
-            alltasks.append(i.tasks)
-    available_tasks = list(update_tasks().intersection_update(set(alltasks)))
+    with shelve.open('tasks') as shelve_tasks:
+        for i in people:
+            if i['chat_id'] in shelve_tasks:
+                i.update({'tasks' : shelve_tasks[i['chat_id']]})
+                for j in i['tasks']:
+                    alltasks.append(j)
+            else:
+                i.update({'tasks':[]})
+    temp = update_tasks()
+    available_tasks = list(temp & set(alltasks))
+    available_tasks.sort()
     std_score = update_score()
     std_last_task = update_last_task()
-    weight = [[0] * available_tasks for i in range(len(people))]
-
-    ## TODO: Сделать нормальные веса.
+    weight = [[(-1) * 10 ** 20] * len(available_tasks) for i in range(len(people))]
+    for i in range(len(people)):
+        id = people[i]['id'] - 1
+        people_weight = - std_score[id] * 4 + (((LASTTASK - std_last_task[id]) + 10) // 11) * 4 + random.uniform(-4,4)
+        with shelve.open('losers') as shelve_losers:
+            if str(id) in shelve_losers:
+                 people_weight -= 8
+        for j in range(len(available_tasks)):
+            if available_tasks[j] in people[i]['tasks']:
+                people_weight+=1
+        for j in range(len(available_tasks)):
+            if available_tasks[j] in people[i]['tasks']:
+                weight[i][j] = people_weight
     dealing = assignment_hungary(weight)
     with shelve.open('dealing') as shelve_deal:
         shelve_deal.clear()
-        for i in range(len(dealing)):
-            if dealing[i] > 0:
-                shelve_deal[str(available_tasks[i - 1])] = people[dealing[i]]
+        for i in range(len(people)):
+           if dealing[i] > 0:
+               shelve_deal[str(available_tasks[dealing[i] - 1])] = people[i]
 
-def all(bot, update, args):
+def all(bot, update):
     if not checkUserName(update.message.from_user.username):
         update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
         return
     with shelve.open('dealing') as shelve_deal:
-        str = ""
-        for i in shelve_deal.get_keys():
-            str += str(i) + ' - ' + shelve_deal[i].name + '\n'
-     update.message.reply_text(str)
+        res = ""
+        for i in shelve_deal.keys():
+            res += str(i) + ' - ' + shelve_deal[str(i)]['name'] + '\n'
+        update.message.reply_text(res)
 
 
 def choose(bot, update, args):
     if not checkUserName(update.message.from_user.username):
         update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
         return
-    Task_name = str(args)
+    Task_name = str(args[0])
     with shelve.open('dealing') as shelve_deal:
-        update.message.reply_text(Task_name + ' - ' + shelve_deal[Task_name].name)
+        if Task_name not in shelve_deal:
+            update.message.reply_text('Данная задача не была заявлена')
+        else:
+            update.message.reply_text(Task_name + ' - ' + shelve_deal[Task_name]['name'])
     return
 
 def lose(bot, update, args):
     if not checkUserName(update.message.from_user.username):
         update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
         return
-    loser_id = int(args[0])
+    loser_id = str(args[0])
     with shelve.open('dealing') as shelve_deal:
-        loser = shelve_deal[loser_id].id
+        loser = shelve_deal[loser_id]['id']
         with shelve.open('losers') as shelve_losers:
             shelve_losers[str(loser)] = True
     return
@@ -200,6 +224,7 @@ if __name__ == '__main__':
     dp.add_handler(CommandHandler('choose', choose, pass_args=True))
     dp.add_handler(CommandHandler('lose', lose, pass_args=True))
 
+    dp.add_handler(CommandHandler('debug',debug))
     dp.add_error_handler(error)
 
     updater.start_polling()

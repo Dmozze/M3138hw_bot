@@ -1,9 +1,15 @@
-def assignment_hungary(weight0):
-    n = len(weight0)
-    m = len(weight0[0])
-    weight = [[0] * (len(weight0) + 1)] + [[0] + [-x for x in i] for i in weight0]
-    u = [0] * (n + 1)
+def assignment_hungary(weight):
+    n = len(weight)
+    m = len(weight[0])
     INF = 10 ** 20
+    for i in weight:
+        for j in range(len(i)):
+            if i[j] == 0:
+               i[j] = INF
+            else:
+               i[j] = -i[j]
+    weight = [[0] * (m + 1)] + [[0] + i for i in weight]
+    u = [0] * (n + 1)
     way = [0] * (m + 1)
     p = [0] * (m + 1)
     v = [0] * (m + 1)
@@ -19,7 +25,6 @@ def assignment_hungary(weight0):
             j1 = 0
             for j in range(1, m + 1):
                 if not used[j]:
-                    print(i0, j)
                     cur = weight[i0][j] - u[i0] - v[j]
                     if cur < minv[j]:
                         minv[j] = cur
@@ -44,5 +49,6 @@ def assignment_hungary(weight0):
                 break
     res = [0] * (n + 1)
     for j in range(1, m + 1):
-        res[p[j]] = j
-    return res
+        if weight[p[j]][j] != INF and p[j] != 0:
+            res[p[j]] = j
+    return res[1:]

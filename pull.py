@@ -1,4 +1,4 @@
- import requests
+import requests
 
 SHEET_URL = 'https://docs.google.com/spreadsheets/d/1z5JfDt0nUjpKEcLX3Ws9LaQe_I7NFwPGQkuS_HIOr9M/edit?usp=sharing'
 
@@ -21,11 +21,21 @@ def update_last_task():
     return res
 
 def update_tasks():
-    r = requests.get(SHEET_URL)
-    list = r.text.split('$$')
+    res = {17, 41, 47, 50, 62, 65, 69, 72, 73, 85, 86, 87, 109, 112, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132}
+    ## FIXME:Баг с таблицами
+    '''r = requests.get(SHEET_URL)
+    with open('output', 'w') as f:
+        print(r.text, file=f)
+    list = r.text.split('@@@@')
+    print(len(list))
     del list[-1]
+    print(len(list))
     res = set()
-    for i in range(len(list)):
-        if list[i][-1] = 'F':
-            res.add(i + 1)
+    index = 0
+    for i in list:
+        if i[-1] == 'T' or i[-1] == 'F':
+             index+=1
+        print(i[-1], index)
+        if i[-1] == 'F':
+            res.add(i)'''
     return res
