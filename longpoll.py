@@ -11,7 +11,9 @@ from build import *
 from pull import *
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.INFO
+                    filename=HOME + 'bot.log'
+                    )
 
 logger = logging.getLogger(__name__)
 
