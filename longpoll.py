@@ -68,7 +68,7 @@ def checkIn(bot, update, args):
                 if user_id in shelve_names:
                     update.message.reply_text('Вы уже зарегистрированы как ' + i)
                     return
-                shelve_names[user_id] = {'name' : lastname[i].split()[0], 'tasks' : []}
+                shelve_names[user_id] = {'name' : i, 'tasks' : []}
                 update.message.reply_text('Вы были удачно зарегистрированны')
                 return
     update.message.reply_text('Я не смог вас идентифицировать как студента M3138')
@@ -80,22 +80,27 @@ def is_correct_value(value):
         return False
 
 def edit(bot, update, args):
-    with shelve.open('names_db') as shelve_names:
+    with shelve.open('names_db',writeback=True) as shelve_names:
         user_id = str(update.message.chat_id)
         if user_id not in shelve_names:
             update.message.reply_text('Вы не зарегистрированы, смотрите /help')
             return
-        invalues = {}
+        if len(args) == 0:
+            shelve_names[user_id]['tasks'] =  []
+            update.message.reply_text('Список ваших задач пуст')
+            return
+        invalues = set()
         for value in args:
-            if is_correct_value(value)
-                invalues.insert(value)
+            if is_correct_value(value):
+                invalues.add(int(value))
             else:
-                 range = value.split('-')
-                 if len(range) == 2 and is_correct_value(range[0]) and is_correct_value(range[1]):
-                     for number in range(range[0], range[1] + 1):
-                         invalues.insert(number)
-        shelve_names[user_id]['tasks'] = list(set(shelve_names) ^ invalues)
-        show(bot, update)
+                 rng = value.split('-')
+                 if len(rng) == 2 and is_correct_value(rng[0]) and is_correct_value(rng[1]):
+                     for number in range(int(rng[0]), int(rng[1]) + 1):
+                         invalues.add(number)
+        shelve_names[user_id]['tasks'] =  sorted(list(set(shelve_names[user_id]['tasks']) ^ invalues))
+
+    show(bot, update)
 
 def show(bot,update):
     with shelve.open('names_db') as shelve_names:
@@ -103,7 +108,10 @@ def show(bot,update):
         if user_id not in shelve_names:
             update.message.reply_text('Вы не зарегистрированы, смотрите /help')
             return
-        update.message.reply_text('Вы заявили задачи под номерами: ' + ', '.join(shelve_names[user_id][tasks]))
+        if len(shelve_names[user_id]['tasks']) == 0:
+            update.message.reply_text('Вы не зарегистрированы, смотрите /help')
+        else:
+            update.message.reply_text('Вы заявили задачи под номерами: ' + ', '.join([str(i) for i in shelve_names[user_id]['tasks']]))
 
 def update(bot,update):
     if not checkUserName(update.message.from_user.username):
@@ -114,13 +122,14 @@ def update(bot,update):
     with shelve.open('names_db') as shelve_names:
         for tasknumber in unsolvedtasks:
             solvedby = [tasknumber]
-            for person in shelve_names.keys():
-                if tasknumber in person['tasks']:
-                    solvedby.append(person['name'])
+            for id in shelve_names.keys():
+                ## FIXME:Сделать интовые задачи
+                if int(tasknumber) in shelve_names[id]['tasks']:
+                    solvedby.append(shelve_names[id]['name'])
             if len(solvedby) > 1:
                 data.append(solvedby)
-    generate_csv_file(data)
-    update.message.reply_document('sheet.csv')
+    generate_csv_file(reversed(data))
+    update.message.reply_document(open('sheet.csv', 'rb'))
 
 def error(bot, update, info):
     logger.warning('Update "%s" caused error "%s"', update, info)
@@ -136,7 +145,7 @@ if __name__ == '__main__':
     dp.add_handler(CommandHandler('reg', checkIn, pass_args=True))
     dp.add_handler(CommandHandler('edit', edit, pass_args=True))
     dp.add_handler(CommandHandler('show', show))
-    dp.add_handler(CommandHandler('csv', csv))
+    #dp.add_handler(CommandHandler('csv', csv))
 
     #privatehandlers
     dp.add_handler(CommandHandler('update', update))
