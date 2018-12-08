@@ -12,7 +12,7 @@ from upload import *
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO,
-                    #filename=HOME + 'bot.log'
+                    filename='bot.log'
                     )
 
 logger = logging.getLogger(__name__)
@@ -143,13 +143,14 @@ def update(bot,update):
     data = []
     with shelve.open('names_db') as shelve_names:
         for tasknumber in unsolvedtasks:
-            solvedby = [tasknumber]
+            solvedby = [str(tasknumber)]
             for id in shelve_names.keys():
                 if tasknumber in shelve_names[id]['tasks']:
                     solvedby.append(shelve_names[id]['name'])
             if len(solvedby) > 1:
-                data.append(solvedby)
-    generate_csv_file(reversed(data))
+                data.append(sorted(solvedby))
+    print(data)
+    generate_csv_file(data)
     update.message.reply_document(open('sheet.csv', 'rb'))
 
 def error(bot, update, info):

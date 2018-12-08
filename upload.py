@@ -21,7 +21,6 @@ def upload():
                                 range=SAMPLE_RANGE_NAME).execute()
     values = result.get('values', [])
     res = []
-    print(values)
     for row in values:
        if len(row) == 1 or row[1][-1] == '?':
            res.append(int(row[0]))
