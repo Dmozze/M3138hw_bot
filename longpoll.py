@@ -67,21 +67,19 @@ def checkIn(bot, update, args):
     name = str(args[0])
     for i in lastnames:
         if (name.lower() == i[0:len(name)].lower()):
-            with shelve.open('names_db') as shelve_names:
+            with shelve.open('names_db') as shelve_names, shelve.open('private_db') as shelve_private:
                 user_id = str(update.message.chat_id)
+                if i in shelve_private:
+                    update.message.reply_text('Уже кто-то зарегистрировался под данной фамилией')
+                    return
                 if user_id in shelve_names:
                     update.message.reply_text('Вы уже зарегистрированы как ' + shelve_names[user_id]['name'])
                     return
                 shelve_names[user_id] = {'name' : i, 'tasks' : []}
+                shelve_private[i] = True
                 update.message.reply_text('Вы были удачно зарегистрированны')
                 return
     update.message.reply_text('Я не смог вас идентифицировать как студента M3138')
-
-def is_correct_value(value):
-    if value.isdigit() and int(value) > 0 and int(value) < 200:
-        return True
-    else:
-        return False
 
 def clear(bot, update):
     with shelve.open('names_db',writeback=True) as shelve_names:
@@ -95,13 +93,16 @@ def clear(bot, update):
 def good_set(array):
     invalues = set()
     for value in array:
-        if is_correct_value(value):
+        if value.isdigit():
             invalues.add(int(value))
         else:
             rng = value.split('-')
-            if len(rng) == 2 and is_correct_value(rng[0]) and is_correct_value(rng[1]):
+            if len(rng) == 2 and rng[0].isdigit() and rng[1].isdigit():
                 for number in range(int(rng[0]), int(rng[1]) + 1):
-                    invalues.add(number)
+                    invalues.add(number, bottom, top)
+    if len(invalues) > 50:
+        update.message.reply_text('Слишком много задач для одного раза, не находите?')
+        return set()
     return invalues
 
 def add(bot, update,args):
@@ -111,6 +112,10 @@ def add(bot, update,args):
             update.message.reply_text('Вы не зарегистрированы, смотрите /help')
             return
         toadd = good_set(args)
+        with shelve.open('private_db') as shelve_private:
+            for i in toadd:
+                if i not in shelve_private['unsolvedtasks']
+                    toadd.remove(i)
         shelve_names[user_id]['tasks'] = sorted(list(set(shelve_names[user_id]['tasks']) | toadd))
     show(bot,update)
 
@@ -140,6 +145,8 @@ def update(bot,update):
         update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
         return
     unsolvedtasks = upload()
+    with shelve.open('private_db') as shelve_private:
+        shelve_private['unsolvedtasks'] = unsolvedtasks
     data = []
     with shelve.open('names_db') as shelve_names:
         for tasknumber in unsolvedtasks:
@@ -152,6 +159,21 @@ def update(bot,update):
     print(data)
     generate_csv_file(data)
     update.message.reply_document(open('sheet.csv', 'rb'))
+
+def reset(bot, update):
+    if not checkUserName(update.message.from_user.username):
+        update.message.reply_text('У вас недостаточно прав для выполнения указанной команды')
+        return
+    unsolvedtasks = upload()
+    with shelve.open('private_db') as shelve_private:
+        shelve_private['unsolvedtasks'] = unsolvedtasks
+    with shelve.open('names_db', writeback=True) as shelve_names:
+        for i in shelve_names:
+            temp_list = []
+            for task in i['tasks']:
+                if task in unsolvedtasks:
+                    temp_list.append(task)
+            i['tasks'] = temp_list
 
 def error(bot, update, info):
     logger.warning('Update "%s" caused error "%s"', update, info)
@@ -170,6 +192,7 @@ if __name__ == '__main__':
     dp.add_handler(CommandHandler('clear', clear))
     dp.add_handler(CommandHandler('remove', remove, pass_args=True))
     dp.add_handler(CommandHandler('add', add, pass_args=True))
+    dp.add_handler(CommandHandler('reset', reset))
     #privatehandlers
     dp.add_handler(CommandHandler('update', update))
     dp.add_handler(CommandHandler('debug', debug))

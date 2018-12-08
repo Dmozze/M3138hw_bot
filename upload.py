@@ -6,7 +6,7 @@ from oauth2client import file, client, tools
 SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 
 SAMPLE_SPREADSHEET_ID = '1z5JfDt0nUjpKEcLX3Ws9LaQe_I7NFwPGQkuS_HIOr9M'
-SAMPLE_RANGE_NAME = 'Лист1!G1:H1000'
+SAMPLE_RANGE_NAME = 'Лист1!G:H'
 
 def upload():
     store = file.Storage('token.json')
