@@ -100,9 +100,11 @@ def good_set(array):
             if len(rng) == 2 and rng[0].isdigit() and rng[1].isdigit():
                 for number in range(int(rng[0]), int(rng[1]) + 1):
                     invalues.add(number, bottom, top)
-    if len(invalues) > 50:
-        update.message.reply_text('Слишком много задач для одного раза, не находите?')
-        return set()
+                    if len(invalues) > 50:
+                        break;
+        if len(invalues) > 50:
+            update.message.reply_text('Слишком много задач для одного раза, не находите?')
+            return set()
     return invalues
 
 def add(bot, update,args):
