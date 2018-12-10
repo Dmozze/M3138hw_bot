@@ -1,5 +1,9 @@
 config.py
 __pycache__
-names
-tasks
-dealing
+names_db
+token.json
+credentials.json
+bot.log
+sheet.csv
+private_db
+
