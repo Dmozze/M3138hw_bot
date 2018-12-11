@@ -5,8 +5,8 @@ from oauth2client import file, client, tools
 
 SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 
-SAMPLE_SPREADSHEET_ID = '1z5JfDt0nUjpKEcLX3Ws9LaQe_I7NFwPGQkuS_HIOr9M'
-SAMPLE_RANGE_NAME = 'Лист1!A:B'
+SAMPLE_SPREADSHEET_ID = '1Pvi6QSRy6xWS-l-6L2I5LszqgWNOIDPaosX7UKKGpaA'
+SAMPLE_RANGE_NAME = 'Ответы 38-39!A3:B'
 
 def upload():
     store = file.Storage('token.json')
@@ -24,4 +24,5 @@ def upload():
     for row in values:
        if len(row) == 1 or row[1][-1] == '?':
            res.append(int(row[0]))
+    print('array', res)
     return res

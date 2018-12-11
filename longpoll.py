@@ -12,7 +12,7 @@ from upload import *
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO,
-                    filename='bot.log'
+                    #filename='bot.log'
                     )
 
 logger = logging.getLogger(__name__)
@@ -153,7 +153,7 @@ def update(bot,update):
             solvedby = [str(tasknumber)]
             for id in shelve_names.keys():
                 if tasknumber in shelve_names[id]['tasks']:
-                    solvedby.append(shelve_names[id]['name'])
+                    solvedby.append(shelve_names[id]['name'].split()[0])
             if len(solvedby) > 1:
                 data.append(sorted(solvedby))
     generate_csv_file(data)
